@@ -74,6 +74,10 @@ class InferUnetWidget(core.CWorkflowTaskWidget):
         self.browse_model_file = pyqtutils.append_browse_file(grid_layout=self.gridLayout, label="model File",
                                                               path=self.parameters.modelFile,
                                                               mode=QFileDialog.ExistingFile)
+        # class_names
+        self.browse_class_names = pyqtutils.append_browse_file(grid_layout=self.gridLayout, label="class_names",
+                                                              path=self.parameters.modelFile,
+                                                              mode=QFileDialog.ExistingFile)
         # Output folder
         self.browse_out_folder = pyqtutils.append_browse_file(self.gridLayout, label="Output folder",
                                                               path=self.parameters.outputFolder,
@@ -92,6 +96,7 @@ class InferUnetWidget(core.CWorkflowTaskWidget):
         self.parameters.num_channels = self.num_channelsSpinBox.value()
         self.parameters.outputFolder = self.browse_out_folder.path
         self.parameters.modelFile = self.browse_model_file.path
+        self.parameters.class_names = self.browse_class_names.path
 
         # Send signal to launch the process
         self.emitApply(self.parameters)

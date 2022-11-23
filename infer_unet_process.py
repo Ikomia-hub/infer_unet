@@ -25,6 +25,7 @@ from infer_unet.predict.utils_prediction import predict_mask, mask_to_image
 from PIL import Image
 from datetime import datetime
 import numpy as np
+import random
 # Your imports below
 
 
@@ -41,6 +42,7 @@ class InferUnetParam(core.CWorkflowTaskParam):
         self.img_scale = 0.5
         self.num_channels = 3
         self.num_classes = 4
+        self.class_names = ""
         self.outputFolder= ""
 
     def setParamMap(self, param_map):
@@ -50,6 +52,7 @@ class InferUnetParam(core.CWorkflowTaskParam):
         self.img_scale = param_map["img_scale"]
         self.num_channels = param_map["num_channels"]
         self.num_classes = param_map["num_classes"]
+        self.class_names = param_map["class_names"]
         self.outputFolder = param_map["outputFolder"]
         pass
 
@@ -61,6 +64,7 @@ class InferUnetParam(core.CWorkflowTaskParam):
         param_map["img_scale"] = self.img_scale
         param_map["num_channels"] = self.num_channels
         param_map["num_classes"] = self.num_classes
+        param_map["class_names"] = self.class_names
         param_map["outputFolder"] = self.outputFolder
         return param_map
 
@@ -73,6 +77,9 @@ class InferUnet(dataprocess.C2dImageTask):
 
     def __init__(self, name, param):
         dataprocess.C2dImageTask.__init__(self, name)
+        # add output
+        self.addOutput(dataprocess.CSemanticSegIO())
+        self.colors = None
 
         # Create parameters class
         if param is None:
@@ -117,7 +124,7 @@ class InferUnet(dataprocess.C2dImageTask):
                             full_img=img,
                             scale_factor=param.img_scale,
                             device=device)
-
+        mask = mask.astype('uint8')
         # convert prediction to image
         mask_image = mask_to_image(mask)
         Pil_img = Image.fromarray(mask_image.astype(np.uint8))
@@ -128,11 +135,35 @@ class InferUnet(dataprocess.C2dImageTask):
         Pil_img.save(out_img_path)
 
         # Get output :
-        output = self.getOutput(0)
+        output = self.getOutput(1)
+        # Set the mask of the semantic segmentation output
+        output.setMask(mask)
 
+        # load class categories
+        assert os.path.isfile(param.class_names), " class file doesnt exist"
+        with open(param.class_names, 'rt') as f:
+            categories = f.read().rstrip('\n').split('\n')
+
+        classes = []
+        for i in range(len(categories)):
+            classes.append(categories[i])
+
+        # Create random color map
+        if self.colors is None:
+            n = len(classes)
+            self.colors = []
+            for i in range(n):
+                self.colors.append([random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)])
+
+        output.setClassNames(classes, self.colors)
+        # Apply color map on labelled image
+        self.setOutputColorMap(0, 1, self.colors)
+        self.forwardInputImage(0, 0)
+
+        # Get output :
+        #output = self.getOutput(0)
         # Set image of output (numpy array):
-        output.setImage(mask_image)
-
+        #output.setImage(mask_image)
 
         # Step progress bar:
         self.emitStepProgress()

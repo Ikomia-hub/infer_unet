@@ -29,11 +29,14 @@ def predict_mask(net, full_img, device, scale_factor=0.5, out_threshold=0.5):
         full_mask = tf(probs.cpu()).squeeze()
 
         if net.n_classes == 1:
-            return (full_mask > out_threshold).numpy()
+            mask = (full_mask > out_threshold).numpy()
         else:
-            return F.one_hot(full_mask.argmax(dim=0), net.n_classes).permute(2, 0, 1).numpy()
+            mask = F.one_hot(full_mask.argmax(dim=0), net.n_classes).permute(2, 0, 1).numpy()
 
-        return full_mask
+        if mask.ndim == 2:
+            return mask
+        elif mask.ndim == 3:
+            return np.argmax(mask, axis=0) # * 255 / mask.shape[0]
 
 
 def preprocess(pil_img, scale, is_mask):
@@ -46,7 +49,4 @@ def preprocess(pil_img, scale, is_mask):
 
 
 def mask_to_image(mask: np.ndarray):
-    if mask.ndim == 2:
-        return mask * 255
-    elif mask.ndim == 3:
-        return np.argmax(mask, axis=0) * 255 / mask.shape[0]
+    return mask * 255
