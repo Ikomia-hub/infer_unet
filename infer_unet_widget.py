@@ -44,13 +44,13 @@ class InferUnetWidget(core.CWorkflowTaskWidget):
         layout = qtconversion.PyQtToQt(self.gridLayout)
 
         # image scale
-        self.spin_scale = pyqtutils.append_double_spin(self.gridLayout, "img_scale", self.parameters.cfg["img_scale"])
+        self.spin_scale = pyqtutils.append_double_spin(self.gridLayout, "img_scale", self.parameters.img_scale)
 
         # num classes
-        self.spin_num_classes = pyqtutils.append_spin(self.gridLayout, "num_classes", self.parameters.cfg["num_classes"])
+        self.spin_num_classes = pyqtutils.append_spin(self.gridLayout, "num_classes", self.parameters.num_classes)
 
         # num channels
-        self.spin_channels = pyqtutils.append_spin(self.gridLayout, "num_channels", self.parameters.cfg["num_channels"])
+        self.spin_channels = pyqtutils.append_spin(self.gridLayout, "num_channels", self.parameters.num_channels)
 
 
         # MODEL FILE
