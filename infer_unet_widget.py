@@ -43,32 +43,15 @@ class InferUnetWidget(core.CWorkflowTaskWidget):
         # PyQt -> Qt wrapping
         layout = qtconversion.PyQtToQt(self.gridLayout)
 
-        img_scaleLabel = QLabel("Scale (resize images)")
-        self.img_scaleSpinBox = QDoubleSpinBox()
-        self.img_scaleSpinBox.setRange(0.1, 1)
-        self.img_scaleSpinBox.setDecimals(4)
-        self.img_scaleSpinBox.setSingleStep(0.0001)
-        self.img_scaleSpinBox.setValue(self.parameters.img_scale)
+        # image scale
+        self.spin_scale = pyqtutils.append_double_spin(self.gridLayout, "img_scale", self.parameters.cfg["img_scale"])
 
-        num_classesLabel = QLabel("Classes number:")
-        self.num_classesSpinBox = QSpinBox()
-        self.num_classesSpinBox.setRange(1, 2147483647)
-        self.num_classesSpinBox.setSingleStep(1)
-        self.num_classesSpinBox.setValue(self.parameters.num_classes)
+        # num classes
+        self.spin_num_classes = pyqtutils.append_spin(self.gridLayout, "num_classes", self.parameters.cfg["num_classes"])
 
-        num_channelsLabel = QLabel("Channels number:")
-        self.num_channelsSpinBox = QSpinBox()
-        self.num_channelsSpinBox.setRange(1, 4)
-        self.num_channelsSpinBox.setSingleStep(1)
-        self.num_channelsSpinBox.setValue(self.parameters.num_channels)
+        # num channels
+        self.spin_channels = pyqtutils.append_spin(self.gridLayout, "num_channels", self.parameters.cfg["num_channels"])
 
-        # Set widget layout
-        self.gridLayout.addWidget(img_scaleLabel, 0, 0, 1, 1)
-        self.gridLayout.addWidget(self.img_scaleSpinBox, 0, 1, 1, 2)
-        self.gridLayout.addWidget(num_classesLabel, 1, 0, 1, 1)
-        self.gridLayout.addWidget(self.num_classesSpinBox, 1, 1, 1, 2)
-        self.gridLayout.addWidget(num_channelsLabel, 2, 0, 1, 1)
-        self.gridLayout.addWidget(self.num_channelsSpinBox, 2, 1, 1, 2)
 
         # MODEL FILE
         self.browse_model_file = pyqtutils.append_browse_file(grid_layout=self.gridLayout, label="model File",
@@ -91,9 +74,9 @@ class InferUnetWidget(core.CWorkflowTaskWidget):
         # Apply button clicked slot
 
         # Get parameters from widget
-        self.parameters.img_scale = self.img_scaleSpinBox.value()
-        self.parameters.num_classes = self.num_classesSpinBox.value()
-        self.parameters.num_channels = self.num_channelsSpinBox.value()
+        self.parameters.img_scale = self.spin_scale.value()
+        self.parameters.num_classes = self.spin_num_classes.value()
+        self.parameters.num_channels = self.spin_channels.value()
         self.parameters.outputFolder = self.browse_out_folder.path
         self.parameters.modelFile = self.browse_model_file.path
         self.parameters.class_names = self.browse_class_names.path
