@@ -7,9 +7,9 @@ from PIL import Image
 import numpy as np
 
 
-def predict_mask(net, full_img, device, scale_factor=0.5, out_threshold=0.5):
+def predict_mask(net, full_img, device, size, out_threshold=0.5):
     net.eval()
-    img = torch.from_numpy(preprocess(full_img, scale_factor, is_mask=False))
+    img = torch.from_numpy(preprocess(full_img, size, is_mask=False))
     img = img.unsqueeze(0)
     img = img.to(device=device, dtype=torch.float32)
 
@@ -39,10 +39,10 @@ def predict_mask(net, full_img, device, scale_factor=0.5, out_threshold=0.5):
             return np.argmax(mask, axis=0) # * 255 / mask.shape[0]
 
 
-def preprocess(pil_img, scale, is_mask):
-    w, h = pil_img.size
-    newW, newH = int(scale * w), int(scale * h)
-    assert newW > 0 and newH > 0, 'Scale is too small, resized images would have no pixel'
+def preprocess(pil_img, size_h_w, is_mask):
+    newW = size_h_w
+    newH = size_h_w
+    assert newW > 0 and newH > 0, 'img size is too small, resized images would have no pixel'
     pil_img = pil_img.resize((newW, newH), resample=Image.NEAREST if is_mask else Image.BICUBIC)
     img_ndarray = np.asarray(pil_img)
     return img_ndarray.transpose((2, 0, 1))

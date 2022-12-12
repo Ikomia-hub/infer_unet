@@ -39,33 +39,24 @@ class InferUnetParam(core.CWorkflowTaskParam):
         core.CWorkflowTaskParam.__init__(self)
         # Place default value initialization here
         self.modelFile = ""
-        self.img_scale = 0.5
-        self.num_channels = 3
-        self.num_classes = 4
+        self.img_size = 128
         self.class_names = ""
-        self.outputFolder= ""
 
     def setParamMap(self, param_map):
         # Set parameters values from Ikomia application
         # Parameters values are stored as string and accessible like a python dict
         self.modelFile = param_map["modelFile"]
-        self.img_scale = param_map["img_scale"]
-        self.num_channels = param_map["num_channels"]
-        self.num_classes = param_map["num_classes"]
+        self.img_size = int(param_map["img_size"])
         self.class_names = param_map["class_names"]
-        self.outputFolder = param_map["outputFolder"]
         pass
 
     def getParamMap(self):
         # Send parameters values to Ikomia application
         # Create the specific dict structure (string container)
         param_map = core.ParamMap()
-        param_map["modelFile"] = self.modelFile
-        param_map["img_scale"] = self.img_scale
-        param_map["num_channels"] = self.num_channels
-        param_map["num_classes"] = self.num_classes
-        param_map["class_names"] = self.class_names
-        param_map["outputFolder"] = self.outputFolder
+        param_map["modelFile"] = str(self.modelFile)
+        param_map["img_size"] = str(self.img_size)
+        param_map["class_names"] = str(self.class_names)
         return param_map
 
 
@@ -100,44 +91,12 @@ class InferUnet(dataprocess.C2dImageTask):
         # Get input :
         img_input = self.getInput(0)
         input_image = img_input.getImage()
+        # input image channels number
+        num_channels = input_image.shape[2]
+        print('num_channels', input_image.shape)
 
         # Get parameters :
         param = self.getParam()
-
-        # load model file after training unet model or use the Carnava pretrained model to test the model
-        path = param.modelFile
-        if os.path.isfile(path):
-            net = UNet(param.num_channels, param.num_classes)
-            net.load_state_dict(torch.load(path))
-        # else use the carnava pretrained model
-        else:
-            net = torch.hub.load('milesial/Pytorch-UNet', 'unet_carvana', pretrained=True, scale=param.img_scale)
-
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        net.to(device=device)
-        net.eval()
-
-        # segment image
-        # mask prédit par le modèle (probabilités de chaque classe)
-        img = Image.fromarray(input_image)
-        mask = predict_mask(net=net,
-                            full_img=img,
-                            scale_factor=param.img_scale,
-                            device=device)
-        mask = mask.astype('uint8')
-        # convert prediction to image
-        mask_image = mask_to_image(mask)
-        Pil_img = Image.fromarray(mask_image.astype(np.uint8))
-        # save segmented image
-        # current datetime is used as folder name
-        str_datetime = datetime.now().strftime("%d-%m-%YT%Hh%Mm%Ss")
-        out_img_path = os.path.join(param.outputFolder, str_datetime+'.png')
-        Pil_img.save(out_img_path)
-
-        # Get output :
-        output = self.getOutput(1)
-        # Set the mask of the semantic segmentation output
-        output.setMask(mask)
 
         # load class categories
         assert os.path.isfile(param.class_names), " class file doesnt exist"
@@ -147,13 +106,40 @@ class InferUnet(dataprocess.C2dImageTask):
         classes = []
         for i in range(len(categories)):
             classes.append(categories[i])
-
+        n_class = len(classes)
         # Create random color map
         if self.colors is None:
-            n = len(classes)
             self.colors = []
-            for i in range(n):
+            for i in range(n_class):
                 self.colors.append([random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)])
+
+        # load model file after training unet model or use the Carnava pretrained model to test the model
+        path = param.modelFile
+        if os.path.isfile(path):
+            net = UNet(num_channels, n_class)
+            net.load_state_dict(torch.load(path))
+        # else use the carnava pretrained model
+        else:
+            net = torch.hub.load('milesial/Pytorch-UNet', 'unet_carvana', pretrained=True, scale=1)
+
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        net.to(device=device)
+        net.eval()
+
+        # segment image
+        print('param.img_size',param.img_size)
+        # mask prédit par le modèle (probabilités de chaque classe)
+        img = Image.fromarray(input_image)
+        mask = predict_mask(net=net,
+                            full_img=img,
+                            size=param.img_size,
+                            device=device)
+        mask = mask.astype('uint8')
+
+        # Get output :
+        output = self.getOutput(1)
+        # Set the mask of the semantic segmentation output
+        output.setMask(mask)
 
         output.setClassNames(classes, self.colors)
         # Apply color map on labelled image
@@ -161,9 +147,9 @@ class InferUnet(dataprocess.C2dImageTask):
         self.forwardInputImage(0, 0)
 
         # Get output :
-        #output = self.getOutput(0)
+        # output = self.getOutput(0)
         # Set image of output (numpy array):
-        #output.setImage(mask_image)
+        # output.setImage(mask_image)
 
         # Step progress bar:
         self.emitStepProgress()

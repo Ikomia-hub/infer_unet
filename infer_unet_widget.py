@@ -43,15 +43,8 @@ class InferUnetWidget(core.CWorkflowTaskWidget):
         # PyQt -> Qt wrapping
         layout = qtconversion.PyQtToQt(self.gridLayout)
 
-        # image scale
-        self.spin_scale = pyqtutils.append_double_spin(self.gridLayout, "img_scale", self.parameters.img_scale)
-
-        # num classes
-        self.spin_num_classes = pyqtutils.append_spin(self.gridLayout, "num_classes", self.parameters.num_classes)
-
-        # num channels
-        self.spin_channels = pyqtutils.append_spin(self.gridLayout, "num_channels", self.parameters.num_channels)
-
+        # image size
+        self.spin_size = pyqtutils.append_spin(self.gridLayout, "img_size", self.parameters.img_size)
 
         # MODEL FILE
         self.browse_model_file = pyqtutils.append_browse_file(grid_layout=self.gridLayout, label="model File",
@@ -61,11 +54,6 @@ class InferUnetWidget(core.CWorkflowTaskWidget):
         self.browse_class_names = pyqtutils.append_browse_file(grid_layout=self.gridLayout, label="class_names",
                                                               path=self.parameters.modelFile,
                                                               mode=QFileDialog.ExistingFile)
-        # Output folder
-        self.browse_out_folder = pyqtutils.append_browse_file(self.gridLayout, label="Output folder",
-                                                              path=self.parameters.outputFolder,
-                                                              tooltip="Select folder",
-                                                              mode=QFileDialog.Directory)
 
         # Set widget layout
         self.setLayout(layout)
@@ -74,10 +62,7 @@ class InferUnetWidget(core.CWorkflowTaskWidget):
         # Apply button clicked slot
 
         # Get parameters from widget
-        self.parameters.img_scale = self.spin_scale.value()
-        self.parameters.num_classes = self.spin_num_classes.value()
-        self.parameters.num_channels = self.spin_channels.value()
-        self.parameters.outputFolder = self.browse_out_folder.path
+        self.parameters.img_size = self.spin_size.value()
         self.parameters.modelFile = self.browse_model_file.path
         self.parameters.class_names = self.browse_class_names.path
 
