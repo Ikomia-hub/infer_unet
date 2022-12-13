@@ -8,25 +8,24 @@ import numpy as np
 
 
 def predict_mask(net, full_img, device, size, out_threshold=0.5):
+    print('full_img', (np.array(full_img)).shape)
     net.eval()
     img = torch.from_numpy(preprocess(full_img, size, is_mask=False))
+    print('img', img.shape)
     img = img.unsqueeze(0)
     img = img.to(device=device, dtype=torch.float32)
 
     with torch.no_grad():
         # net output shape: (Batch_size, Num_classes, h, w)
         output = net(img)
+        print('outp shape', output.shape)
         # output scores to probabilities
         probs = F.softmax(output, dim=1)[0]
 
-        # transform prediction to PIL image with the same size as input image
-        tf = transforms.Compose([
-            transforms.ToPILImage(),
-            transforms.Resize((full_img.size[1], full_img.size[0])),
-            transforms.ToTensor()
-        ])
+        print('probs shape', probs.shape)
+
         # remove the added dim (batch_size) --> shape: (Num_classes, h, w)
-        full_mask = tf(probs.cpu()).squeeze()
+        full_mask = probs.cpu().squeeze()
 
         if net.n_classes == 1:
             mask = (full_mask > out_threshold).numpy()

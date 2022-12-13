@@ -91,35 +91,32 @@ class InferUnet(dataprocess.C2dImageTask):
         # Get input :
         img_input = self.getInput(0)
         input_image = img_input.getImage()
-        # input image channels number
-        num_channels = input_image.shape[2]
         print('num_channels', input_image.shape)
 
         # Get parameters :
         param = self.getParam()
 
-        # load class categories
-        assert os.path.isfile(param.class_names), " class file doesnt exist"
-        with open(param.class_names, 'rt') as f:
-            categories = f.read().rstrip('\n').split('\n')
-
-        classes = []
-        for i in range(len(categories)):
-            classes.append(categories[i])
-        n_class = len(classes)
-        # Create random color map
-        if self.colors is None:
-            self.colors = []
-            for i in range(n_class):
-                self.colors.append([random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)])
-
         # load model file after training unet model or use the Carnava pretrained model to test the model
         path = param.modelFile
         if os.path.isfile(path):
-            net = UNet(num_channels, n_class)
+            # load class categories
+            assert os.path.isfile(param.class_names), " class file doesnt exist"
+            with open(param.class_names, 'rt') as f:
+                categories = f.read().rstrip('\n').split('\n')
+
+            classes = []
+            for i in range(len(categories)):
+                classes.append(categories[i])
+            n_class = len(classes)
+
+            net = UNet(input_image.shape[2], n_class)
             net.load_state_dict(torch.load(path))
+
         # else use the carnava pretrained model
         else:
+            classes = ['background', 'car']
+            n_class = 2
+
             net = torch.hub.load('milesial/Pytorch-UNet', 'unet_carvana', pretrained=True, scale=1)
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -141,7 +138,16 @@ class InferUnet(dataprocess.C2dImageTask):
         # Set the mask of the semantic segmentation output
         output.setMask(mask)
 
+        # Create random color map
+        if self.colors is None:
+            self.colors = []
+            for i in range(n_class):
+                self.colors.append([random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)])
+
+        print('classes', len(classes))
+        print('colors', len(self.colors))
         output.setClassNames(classes, self.colors)
+
         # Apply color map on labelled image
         self.setOutputColorMap(0, 1, self.colors)
         self.forwardInputImage(0, 0)
