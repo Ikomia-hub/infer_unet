@@ -16,7 +16,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import os.path
-
 from ikomia import core, dataprocess
 import copy
 from infer_unet.unet import UNet
@@ -112,8 +111,10 @@ class InferUnet(dataprocess.C2dImageTask):
         else:
             classes = ['background', 'car']
             n_class = 2
-            self.colors = [[0, 0, 0], [255, 0, 0]]
-            net = unet_carvana(pretrained=False, scale=1)
+            try:
+                net = unet_carvana(pretrained=True, scale=0.5)
+            except:
+                net = torch.hub.load('milesial/Pytorch-UNet', 'unet_carvana', pretrained=True, scale=0.5)
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         net.to(device=device)
@@ -134,8 +135,8 @@ class InferUnet(dataprocess.C2dImageTask):
         if self.colors is None:
             self.create_color_map(n_class)
 
-        print('classes', classes)
-        print('colors', self.colors)
+        print('classes', len(classes))
+        print('colors', len(self.colors))
         output.setClassNames(classes, self.colors)
 
         # Apply color map on labelled image
@@ -158,6 +159,8 @@ class InferUnet(dataprocess.C2dImageTask):
             for i in range(num_classes):
                 self.colors.append([random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)])
             return self.colors
+
+
 # --------------------
 # - Factory class to build process object
 # - Inherits PyDataProcess.CTaskFactory from Ikomia API
@@ -168,7 +171,8 @@ class InferUnetFactory(dataprocess.CTaskFactory):
         dataprocess.CTaskFactory.__init__(self)
         # Set process information as string here
         self.info.name = "infer_unet"
-        self.info.shortDescription = "multi-class semantic segmentation using Unet"
+        self.info.shortDescription = "multi-class semantic segmentation using Unet, " \
+                                     "the default model was trained on Kaggle's Carvana Images dataset"
         # relative path -> as displayed in Ikomia application process tree
         self.info.path = "Plugins/Python"
         self.info.version = "1.0.0"
