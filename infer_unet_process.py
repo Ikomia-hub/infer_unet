@@ -83,7 +83,9 @@ class InferUnet(dataprocess.C2dImageTask):
         # Core function of your process
         # Call beginTaskRun for initialization
         self.beginTaskRun()
-        self.colors = None
+
+        # we use seed to keep the same color for our masks + boxes + labels (same random each time)
+        random.seed(10)
 
         # Get input :
         img_input = self.getInput(0)
