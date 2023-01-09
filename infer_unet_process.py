@@ -66,7 +66,9 @@ class InferUnet(dataprocess.C2dImageTask):
         dataprocess.C2dImageTask.__init__(self, name)
         # add output
         self.addOutput(dataprocess.CSemanticSegIO())
+        self.net = None
         self.colors = None
+        self.classes = None
 
         # Create parameters class
         if param is None:
@@ -96,33 +98,35 @@ class InferUnet(dataprocess.C2dImageTask):
 
         # load model file after training unet model or use the Carnava pretrained model to test the model
         path = param.modelFile
-        if os.path.isfile(path):
-            # load model dict
-            model_dict = torch.load(path)
-            # load class names from model dict
-            classes_dict = model_dict['class_names']
-            classes = list(classes_dict.values())
+        # load model
+        if self.net is None or param.update:
+            if os.path.isfile(path):
+                # load model dict
+                model_dict = torch.load(path)
+                # load class names from model dict
+                classes_dict = model_dict['class_names']
+                self.classes = list(classes_dict.values())
 
-            n_class = len(classes)
-            # load state_dict
-            state_dict = model_dict['state_dict']
-            net = UNet(input_image.shape[2], n_class)
-            net.load_state_dict(state_dict)
+                n_class = len(self.classes)
+                # load state_dict
+                state_dict = model_dict['state_dict']
+                self.net = UNet(input_image.shape[2], n_class)
+                self.net.load_state_dict(state_dict)
 
-        # else use the carnava pretrained model
-        else:
-            classes = ['background', 'car']
-            n_class = 2
-            try:
-                net = unet_carvana(pretrained=True, scale=0.5)
-            except:
-                net = torch.hub.load('milesial/Pytorch-UNet', 'unet_carvana', pretrained=True, scale=0.5)
+            # else use the carnava pretrained model
+            else:
+                self.classes = ['background', 'car']
+                n_class = 2
+                try:
+                    self.net = unet_carvana(pretrained=True, scale=0.5)
+                except:
+                    self.net = torch.hub.load('milesial/Pytorch-UNet', 'unet_carvana', pretrained=True, scale=0.5)
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        net.to(device=device)
-        net.eval()
+        self.net.to(device=device)
+        self.net.eval()
 
-        mask = predict_mask(net=net,
+        mask = predict_mask(net=self.net,
                             full_img=input_image,
                             size=param.img_size,
                             device=device)
@@ -137,18 +141,12 @@ class InferUnet(dataprocess.C2dImageTask):
         if self.colors is None:
             self.create_color_map(n_class)
 
-        print('classes', len(classes))
-        print('colors', len(self.colors))
-        output.setClassNames(classes, self.colors)
+        output.setClassNames(self.classes, self.colors)
 
         # Apply color map on labelled image
         self.setOutputColorMap(0, 1, self.colors)
         self.forwardInputImage(0, 0)
-
-        # Get output :
-        # output = self.getOutput(0)
-        # Set image of output (numpy array):
-        # output.setImage(mask_image)
+        param.update = False
 
         # Step progress bar:
         self.emitStepProgress()

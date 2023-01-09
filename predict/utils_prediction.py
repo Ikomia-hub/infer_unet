@@ -46,7 +46,7 @@ def mask_to_image(mask: np.ndarray):
     return mask * 255
 
 
-def unet_carvana(pretrained=False, scale=0.5):
+def unet_carvana(pretrained=True, scale=0.5):
     """
     UNet model trained on the Carvana dataset ( https://www.kaggle.com/c/carvana-image-masking-challenge/data ).
     Set the scale to 0.5 (50%) when predicting.
