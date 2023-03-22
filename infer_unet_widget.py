@@ -52,9 +52,9 @@ class InferUnetWidget(core.CWorkflowTaskWidget):
                                                               mode=QFileDialog.ExistingFile)
 
         # Set widget layout
-        self.setLayout(layout)
+        self.set_layout(layout)
 
-    def onApply(self):
+    def on_apply(self):
         # Apply button clicked slot
 
         # Get parameters from widget
@@ -62,7 +62,7 @@ class InferUnetWidget(core.CWorkflowTaskWidget):
         self.parameters.modelFile = self.browse_model_file.path
 
         # Send signal to launch the process
-        self.emitApply(self.parameters)
+        self.emit_apply(self.parameters)
 
 
 # --------------------
