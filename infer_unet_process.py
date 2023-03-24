@@ -46,9 +46,10 @@ class InferUnetParam(core.CWorkflowTaskParam):
     def get_values(self):
         # Send parameters values to Ikomia application
         # Create the specific dict structure (string container)
-        param_map = {}
-        param_map["modelFile"] = str(self.modelFile)
-        param_map["img_size"] = str(self.img_size)
+        param_map = {
+                    "modelFile": str(self.modelFile),
+                    "img_size": str(self.img_size)
+                    }
         return param_map
 
 
