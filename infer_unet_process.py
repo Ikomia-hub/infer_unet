@@ -20,8 +20,7 @@ from ikomia import core, dataprocess
 import copy
 from infer_unet.unet import UNet
 import torch
-from infer_unet.predict.utils_prediction import predict_mask, mask_to_image, unet_carvana
-# Your imports below
+from infer_unet.predict.utils_prediction import predict_mask, unet_carvana
 
 
 # --------------------
@@ -47,9 +46,9 @@ class InferUnetParam(core.CWorkflowTaskParam):
         # Send parameters values to Ikomia application
         # Create the specific dict structure (string container)
         param_map = {
-                    "model_path": str(self.model_path),
-                    "input_size": str(self.input_size)
-                    }
+            "model_path": str(self.model_path),
+            "input_size": str(self.input_size)
+        }
         return param_map
 
 
@@ -114,6 +113,7 @@ class InferUnet(dataprocess.CSemanticSegmentationTask):
                     self.net = unet_carvana(pretrained=True, scale=0.5)
                 except:
                     self.net = torch.hub.load('milesial/Pytorch-UNet', 'unet_carvana', pretrained=True, scale=0.5)
+
             self.set_names(self.classes)
             param.update = False
 
@@ -147,10 +147,11 @@ class InferUnetFactory(dataprocess.CTaskFactory):
         dataprocess.CTaskFactory.__init__(self)
         # Set process information as string here
         self.info.name = "infer_unet"
-        self.info.short_description = "multi-class semantic segmentation using Unet, " \
-                                     "the default model was trained on Kaggle's Carvana Images dataset"
+        self.info.short_description = "Multi-class semantic segmentation using Unet, " \
+                                      "the default model was trained on Kaggle's Carvana Images dataset"
         # relative path -> as displayed in Ikomia application process tree
-        self.info.path = "Plugins/Python"
+        self.info.path = "Plugins/Python/Segmentation"
+        self.info.icon_path = "icon/unet.jpg"
         self.info.version = "1.1.0"
         # self.info.icon_path = "your path to a specific icon"
         self.info.authors = "Olaf Ronneberger, Philipp Fischer, Thomas Brox"
