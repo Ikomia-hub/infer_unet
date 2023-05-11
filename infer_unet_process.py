@@ -32,13 +32,13 @@ class InferUnetParam(core.CWorkflowTaskParam):
     def __init__(self):
         core.CWorkflowTaskParam.__init__(self)
         # Place default value initialization here
-        self.model_path = ""
+        self.model_weight_file = ""
         self.input_size = 128
 
     def set_values(self, param_map):
         # Set parameters values from Ikomia application
         # Parameters values are stored as string and accessible like a python dict
-        self.model_path = param_map["model_path"]
+        self.model_weight_file = param_map["model_weight_file"]
         self.input_size = int(param_map["input_size"])
         pass
 
@@ -46,7 +46,7 @@ class InferUnetParam(core.CWorkflowTaskParam):
         # Send parameters values to Ikomia application
         # Create the specific dict structure (string container)
         param_map = {
-            "model_path": str(self.model_path),
+            "model_weight_file": str(self.model_weight_file),
             "input_size": str(self.input_size)
         }
         return param_map
@@ -90,7 +90,7 @@ class InferUnet(dataprocess.CSemanticSegmentationTask):
         param = self.get_param_object()
 
         # load model file after training unet model or use the Carnava pretrained model to test the model
-        path = param.model_path
+        path = param.model_weight_file
         # load model
         if self.net is None or param.update:
             if os.path.isfile(path):
