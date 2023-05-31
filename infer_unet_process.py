@@ -20,12 +20,7 @@ from ikomia import core, dataprocess
 import copy
 from infer_unet.unet import UNet
 import torch
-from infer_unet.predict.utils_prediction import predict_mask, mask_to_image, unet_carvana
-from PIL import Image
-from datetime import datetime
-import numpy as np
-import random
-# Your imports below
+from infer_unet.predict.utils_prediction import predict_mask, unet_carvana
 
 
 # --------------------
@@ -37,22 +32,23 @@ class InferUnetParam(core.CWorkflowTaskParam):
     def __init__(self):
         core.CWorkflowTaskParam.__init__(self)
         # Place default value initialization here
-        self.modelFile = ""
-        self.img_size = 128
+        self.model_weight_file = ""
+        self.input_size = 128
 
-    def setParamMap(self, param_map):
+    def set_values(self, param_map):
         # Set parameters values from Ikomia application
         # Parameters values are stored as string and accessible like a python dict
-        self.modelFile = param_map["modelFile"]
-        self.img_size = int(param_map["img_size"])
+        self.model_weight_file = param_map["model_weight_file"]
+        self.input_size = int(param_map["input_size"])
         pass
 
-    def getParamMap(self):
+    def get_values(self):
         # Send parameters values to Ikomia application
         # Create the specific dict structure (string container)
-        param_map = core.ParamMap()
-        param_map["modelFile"] = str(self.modelFile)
-        param_map["img_size"] = str(self.img_size)
+        param_map = {
+            "model_weight_file": str(self.model_weight_file),
+            "input_size": str(self.input_size)
+        }
         return param_map
 
 
@@ -60,44 +56,41 @@ class InferUnetParam(core.CWorkflowTaskParam):
 # - Class which implements the process
 # - Inherits PyCore.CWorkflowTask or derived from Ikomia API
 # --------------------
-class InferUnet(dataprocess.C2dImageTask):
+class InferUnet(dataprocess.CSemanticSegmentationTask):
 
     def __init__(self, name, param):
-        dataprocess.C2dImageTask.__init__(self, name)
-        # add output
-        self.addOutput(dataprocess.CSemanticSegIO())
+        dataprocess.CSemanticSegmentationTask.__init__(self, name)
+
         self.net = None
-        self.colors = None
         self.classes = None
 
         # Create parameters class
         if param is None:
-            self.setParam(InferUnetParam())
+            self.set_param_object(InferUnetParam())
         else:
-            self.setParam(copy.deepcopy(param))
+            self.set_param_object(copy.deepcopy(param))
 
-    def getProgressSteps(self):
+    def get_progress_steps(self):
         # Function returning the number of progress steps for this process
         # This is handled by the main progress bar of Ikomia application
         return 1
 
     def run(self):
         # Core function of your process
-        # Call beginTaskRun for initialization
-        self.beginTaskRun()
+        # Call begin_task_run for initialization
+        self.begin_task_run()
 
         # we use seed to keep the same color for our masks + boxes + labels (same random each time)
-        random.seed(10)
 
         # Get input :
-        img_input = self.getInput(0)
-        input_image = img_input.getImage()
+        img_input = self.get_input(0)
+        input_image = img_input.get_image()
 
         # Get parameters :
-        param = self.getParam()
+        param = self.get_param_object()
 
         # load model file after training unet model or use the Carnava pretrained model to test the model
-        path = param.modelFile
+        path = param.model_weight_file
         # load model
         if self.net is None or param.update:
             if os.path.isfile(path):
@@ -116,11 +109,13 @@ class InferUnet(dataprocess.C2dImageTask):
             # else use the carnava pretrained model
             else:
                 self.classes = ['background', 'car']
-                n_class = 2
                 try:
                     self.net = unet_carvana(pretrained=True, scale=0.5)
                 except:
                     self.net = torch.hub.load('milesial/Pytorch-UNet', 'unet_carvana', pretrained=True, scale=0.5)
+
+            self.set_names(self.classes)
+            param.update = False
 
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.net.to(device=device)
@@ -128,37 +123,18 @@ class InferUnet(dataprocess.C2dImageTask):
 
         mask = predict_mask(net=self.net,
                             full_img=input_image,
-                            size=param.img_size,
+                            size=param.input_size,
                             device=device)
         mask = mask.astype('uint8')
 
-        # Get output :
-        output = self.getOutput(1)
         # Set the mask of the semantic segmentation output
-        output.setMask(mask)
-
-        # create color map
-        if self.colors is None:
-            self.create_color_map(n_class)
-
-        output.setClassNames(self.classes, self.colors)
-
-        # Apply color map on labelled image
-        self.setOutputColorMap(0, 1, self.colors)
-        self.forwardInputImage(0, 0)
-        param.update = False
+        self.set_mask(mask)
 
         # Step progress bar:
-        self.emitStepProgress()
+        self.emit_step_progress()
 
-        # Call endTaskRun to finalize process
-        self.endTaskRun()
-
-    def create_color_map(self, num_classes):
-            self.colors = []
-            for i in range(num_classes):
-                self.colors.append([random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)])
-            return self.colors
+        # Call end_task_run to finalize process
+        self.end_task_run()
 
 
 # --------------------
@@ -171,12 +147,13 @@ class InferUnetFactory(dataprocess.CTaskFactory):
         dataprocess.CTaskFactory.__init__(self)
         # Set process information as string here
         self.info.name = "infer_unet"
-        self.info.shortDescription = "multi-class semantic segmentation using Unet, " \
-                                     "the default model was trained on Kaggle's Carvana Images dataset"
+        self.info.short_description = "Multi-class semantic segmentation using Unet, " \
+                                      "the default model was trained on Kaggle's Carvana Images dataset"
         # relative path -> as displayed in Ikomia application process tree
-        self.info.path = "Plugins/Python"
-        self.info.version = "1.0.0"
-        # self.info.iconPath = "your path to a specific icon"
+        self.info.path = "Plugins/Python/Segmentation"
+        self.info.icon_path = "icon/unet.jpg"
+        self.info.version = "1.1.0"
+        # self.info.icon_path = "your path to a specific icon"
         self.info.authors = "Olaf Ronneberger, Philipp Fischer, Thomas Brox"
         self.info.article = "U-Net: Convolutional Networks for Biomedical Image Segmentation"
         self.info.year = 2015

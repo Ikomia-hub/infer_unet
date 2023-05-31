@@ -44,25 +44,25 @@ class InferUnetWidget(core.CWorkflowTaskWidget):
         layout = qtconversion.PyQtToQt(self.gridLayout)
 
         # image size
-        self.spin_size = pyqtutils.append_spin(self.gridLayout, "img_size", self.parameters.img_size)
+        self.spin_size = pyqtutils.append_spin(self.gridLayout, "img_size", self.parameters.input_size)
 
         # MODEL FILE
         self.browse_model_file = pyqtutils.append_browse_file(grid_layout=self.gridLayout, label="model File",
-                                                              path=self.parameters.modelFile,
+                                                              path=self.parameters.model_weight_file,
                                                               mode=QFileDialog.ExistingFile)
 
         # Set widget layout
-        self.setLayout(layout)
+        self.set_layout(layout)
 
-    def onApply(self):
+    def on_apply(self):
         # Apply button clicked slot
 
         # Get parameters from widget
-        self.parameters.img_size = self.spin_size.value()
-        self.parameters.modelFile = self.browse_model_file.path
+        self.parameters.input_size = self.spin_size.value()
+        self.parameters.model_weight_file = self.browse_model_file.path
 
         # Send signal to launch the process
-        self.emitApply(self.parameters)
+        self.emit_apply(self.parameters)
 
 
 # --------------------
