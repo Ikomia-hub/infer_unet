@@ -159,7 +159,8 @@ class InferUnetFactory(dataprocess.CTaskFactory):
         self.info.article = "U-Net: Convolutional Networks for Biomedical Image Segmentation"
         self.info.year = 2015
         # Code source repository
-        self.info.repository = "https://github.com/milesial/Pytorch-UNet"
+        self.info.repository = "https://github.com/Ikomia-hub/infer_unet"
+        self.info.original_repository = "https://github.com/milesial/Pytorch-UNet"
         # Keywords used for search
         self.info.keywords = "semantic segmentation, unet, multi-class segmentation"
 
