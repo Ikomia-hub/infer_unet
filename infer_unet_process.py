@@ -163,6 +163,8 @@ class InferUnetFactory(dataprocess.CTaskFactory):
         self.info.original_repository = "https://github.com/milesial/Pytorch-UNet"
         # Keywords used for search
         self.info.keywords = "semantic segmentation, unet, multi-class segmentation"
+        self.info.algo_type = core.AlgoType.INFER
+        self.info.algo_tasks = "SEMANTIC_SEGMENTATION"
 
     def create(self, param=None):
         # Create process object
